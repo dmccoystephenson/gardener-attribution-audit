@@ -59,7 +59,7 @@ Substitute "PR description" / "issue body" / "comment" for the noun. Append afte
 
 Fork a read-only recon pass (or run it inline if the scope looks small). It must NOT edit anything — this step only sizes the surface.
 
-**Finding gardener's PRs (high precision):**
+**Finding gardener's PRs (high precision, but verify — see caveat below):**
 
 ```bash
 gh search prs --owner <org> --match body "gardener-tend-dispatch" --limit 1000 \
@@ -67,6 +67,8 @@ gh search prs --owner <org> --match body "gardener-tend-dispatch" --limit 1000 \
 ```
 
 Run once per org the fleet actually spans — derive the org list live from the local db (`select distinct repo from runs where mode='tend'`, then take the part before `/`) rather than hardcoding a list; this ecosystem's known orgs (as of this skill's authoring) are `dmccoystephenson`, `Dans-Plugins`, `Preponderous-Software`, `Stephenson-Software`, but that set can grow.
+
+**`gh search --match body` tokenizes — it is NOT exact-substring matching.** Confirmed on this skill's first real run: 15 of 112 candidates on one repo were false positives — ordinary, non-`tend` PRs that merely contained the words "gardener"/"tend"/"dispatch" as separate tokens somewhere in the body (e.g. a PR describing a change to gardener's own attribution feature). **Never treat a search hit as gardener's own PR on faith** — after fetching each candidate's body (`gh api repos/OWNER/REPO/pulls/NUM --jq .body`), grep it for the literal marker string before editing or counting it. This matters most on `gardener`'s own repo, where ordinary development PRs are far more likely to mention those words in prose.
 
 **Finding gardener's issues (best-effort, no marker):**
 
@@ -91,7 +93,8 @@ For fleets of any real size, parallelize as one fork per GitHub org bucket (deri
 **Non-negotiable rules for every edit:**
 
 - **Idempotent — check first.** If the item already carries the disclosure (or an equivalent one), skip it. Don't double-append.
-- **Passive voice is mandatory, separately from the appended line.** A disclosure line bolted onto a body that still says "I fixed the bug" is not compliant. Scan for genuine first-person authorial narration describing gardener's own actions/reasoning — "I fixed/found/decided/re-verified...", "my analysis", "I've/I'd..." — and convert to passive/third-person ("The bug was fixed...", "Testing found...", "The review re-verified..."). **Do NOT touch:** quoted text/blockquotes, code fences, test/variable names, file/repo names that merely contain a pronoun, technical tokens like "I/O", or genuine domain content that isn't gardener narrating itself (e.g. a simulated agent's own first-person text inside a project like an artificial-consciousness simulator — that's the subject's voice, not the author's).
+- **Passive voice is mandatory, separately from the appended line.** A disclosure line bolted onto a body that still says "I fixed the bug" is not compliant. Scan for genuine first-person authorial narration describing gardener's own actions/reasoning — "I fixed/found/decided/re-verified...", "my analysis", "I've/I'd..." — and convert to passive/third-person ("The bug was fixed...", "Testing found...", "The review re-verified..."). **Do NOT touch:** quoted text/blockquotes, code fences, test/variable names, file/repo names that merely contain a pronoun, technical tokens like "I/O", or genuine domain content that isn't gardener narrating itself (e.g. a simulated agent's own first-person text inside a project like an artificial-consciousness simulator — that's the subject's voice, not the author's). A naive `\bI\b`-style regex also false-positives on words like "Investigation", "Independent", or "CI does" — verify every candidate sentence by eye, not by regex hit count alone.
+- **Not every PR marker-matched to a gardener repo was actually authored by gardener.** Confirmed on the first real run: a PR gardener merely merged (e.g. one originally opened by GitHub Copilot's coding agent, or by a human) is not gardener's content even if it lives in a repo gardener tends — check the PR's actual author/origin, not just which repo it's in, before rewriting its body.
 - **Minimal, surgical diffs.** Only the passive-voice conversion where needed, plus the appended disclosure line. Never restructure, never add claims, never touch anything else in the body.
 - **Merged/closed items are still fair game.** GitHub allows editing PR/issue bodies and comments regardless of state.
 - **Log every edit**: repo, item type, number, URL, and whether passive-voice conversion was needed or just the line was appended.
