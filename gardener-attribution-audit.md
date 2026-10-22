@@ -107,11 +107,14 @@ For fleets of any real size, parallelize as one fork per GitHub org bucket (deri
 gh api repos/OWNER/REPO/pulls/NUM   --jq .body
 gh api repos/OWNER/REPO/issues/NUM  --jq .body
 
-# write — build the new body in a file first, then PATCH
-jq -n --rawfile body /tmp/newbody.md '{body:$body}' | gh api -X PATCH "repos/OWNER/REPO/pulls/NUM"  --input -
-jq -n --rawfile body /tmp/newbody.md '{body:$body}' | gh api -X PATCH "repos/OWNER/REPO/issues/NUM" --input -
-jq -n --rawfile body /tmp/newbody.md '{body:$body}' | gh api -X PATCH "repos/OWNER/REPO/issues/comments/CID" --input -
+# write — build the new body in a fresh per-item file first, then PATCH
+BODY=$(mktemp)   # one per item, never a shared fixed path
+jq -n --rawfile body "$BODY" '{body:$body}' | gh api -X PATCH "repos/OWNER/REPO/pulls/NUM"  --input -
+jq -n --rawfile body "$BODY" '{body:$body}' | gh api -X PATCH "repos/OWNER/REPO/issues/NUM" --input -
+jq -n --rawfile body "$BODY" '{body:$body}' | gh api -X PATCH "repos/OWNER/REPO/issues/comments/CID" --input -
 ```
+
+**Never share a scratch path between edits.** Step 3's per-org forks run concurrently, so a fixed path such as `/tmp/newbody.md` lets one fork overwrite another's body between write and PATCH — the PATCH then silently replaces an item's content with a different item's body, in another org's bucket. Use a fresh `mktemp` file per item, and after each PATCH read the body back (same read command as above) and confirm it is the original body plus only this item's intended passive-voice changes and the appended disclosure line; if it is not, stop that fork and report the item together with its original body (kept from the read) so it can be restored, rather than continuing.
 
 ### 4 — Report
 
