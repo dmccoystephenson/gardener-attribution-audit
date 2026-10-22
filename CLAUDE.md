@@ -8,7 +8,7 @@ The repo holds one file, `gardener-attribution-audit.md`. It is installed by sym
 
 ## Technology stack
 
-- A single Markdown skill file (Claude Code slash command). No code, no build, no tests, no CI.
+- A single Markdown skill file (Claude Code slash command). No code, no build, no tests. CI (`.github/workflows/ci.yml`, job `test`) runs `python3 scripts/check_docs.py --skill gardener-attribution-audit.md` on every PR: skill structure, balanced code fences, links and anchors.
 - At run time the skill uses the `gh` CLI, `jq`, Python's `sqlite3` module (gardener's local state db), and gardener's source (`gardener/dev_loop.py`).
 
 ## Build and test
