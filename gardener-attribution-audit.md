@@ -106,6 +106,7 @@ For fleets of any real size, parallelize as one fork per GitHub org bucket (deri
 # read
 gh api repos/OWNER/REPO/pulls/NUM   --jq .body
 gh api repos/OWNER/REPO/issues/NUM  --jq .body
+gh api repos/OWNER/REPO/issues/comments/CID --jq .body
 
 # write — build the new body in a fresh per-item file first, then PATCH
 BODY=$(mktemp)   # one per item, never a shared fixed path
