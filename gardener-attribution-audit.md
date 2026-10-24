@@ -133,15 +133,22 @@ Run this section when the skill may have drifted from reality — e.g. after gar
    - The local sqlite db's path, `runs` table schema (`repo`, `mode`, `gap_summary`, `timestamp`, `outcome`), and the `mode` values actually present (still only `tend`, or has `implement`/`file-issue` started appearing?) still hold
    - `gh search prs`, `gh api .../issues/.../comments`, and the PATCH endpoints/flags used above still exist and behave as described
    - The org list this skill's examples reference still reflects the fleet's actual orgs (re-derive live, don't trust a stale list)
-3. For each problem found, open a GitHub issue:
+3. For each problem found, open a GitHub issue. This repo is public: write the body in passive voice, name no private repository, and end it with the disclosure line (re-derived from the live `ATTRIBUTION_REQUIREMENT`, as in Step 1) and the Claude sign-off. Write the body to a fresh per-issue file and pass it with `--body-file`, which also avoids `$(...)` command substitution that some harnesses reject:
    ```bash
+   ISSUE_BODY=$(mktemp)   # write the body below into this file, then:
    gh issue create --repo dmccoystephenson/gardener-attribution-audit \
      --title "<problem summary>" \
-     --body "$(cat <<'EOF'
+     --body-file "$ISSUE_BODY"
+   ```
+   ```markdown
    **Section:** <which step or section is wrong>
    **Problem:** <what is incorrect>
    **Expected behavior:** <what it should do instead>
-   EOF
-   )"
+
+   ---
+
+   _This issue body was drafted during a Gardener session ([Stephenson-Software/gardener](https://github.com/Stephenson-Software/gardener))._
+
+   _drafted by Claude on behalf of Daniel Stephenson_
    ```
 4. Report a summary: how many issues were filed, or confirm the skill is up to date.
