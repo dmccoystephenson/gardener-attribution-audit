@@ -27,7 +27,7 @@ print(conn.execute(\"select mode, count(*) from runs group by mode\").fetchall()
 ```
 (the `sqlite3` CLI binary is often not installed on these boxes — use python3.11's `sqlite3` module, and confirm which `python3.x` on the box actually has a modern-enough stdlib if this fails)
 
-If `implement`/`file-issue` runs ever show up, this skill's PR/issue-finding methodology below (built around `tend`'s marker and `gap_summary` shape) needs extending before it can cover them — don't assume they're covered as-is.
+If any mode other than `tend` shows up (`implement`/`file-issue`, or any other), this skill's PR/issue-finding methodology below (built around `tend`'s marker and `gap_summary` shape) needs extending before it can cover them — don't assume they're covered as-is. `create-dev-loop` is already present (131 runs on one device's db as of 2026-10-28, `gap_summary` like "created dev-loop skill for <name>-dev-loop"); whether those runs post PRs, issues or comments on GitHub has not been established, so treat any such content as uncovered and say so in the report.
 
 In scope: PR descriptions, issue bodies, PR/issue comments. **Out of scope: commit messages** — those follow `COMMIT_PR_CONVENTIONS.md`'s own convention (`Co-Authored-By` trailer), a separate concern gardener's `CLAUDE.md` already governs.
 
@@ -130,7 +130,7 @@ Run this section when the skill may have drifted from reality — e.g. after gar
 1. Read this skill file from top to bottom.
 2. For each command, path, or assumption, verify it is still correct:
    - `/root/gardener/gardener/dev_loop.py` still defines `ATTRIBUTION_REQUIREMENT` and `ORPHAN_MARKER` with the marker string and disclosure wording this skill assumes — if either changed, this skill's canonical disclosure line and marker search are stale and must be updated to match, not the other way around
-   - The local sqlite db's path, `runs` table schema (`repo`, `mode`, `gap_summary`, `timestamp`, `outcome`), and the `mode` values actually present (still only `tend`, or has `implement`/`file-issue` started appearing?) still hold
+   - The local sqlite db's path, `runs` table schema (`repo`, `mode`, `gap_summary`, `timestamp`, `outcome`), and the `mode` values actually present (`tend` and `create-dev-loop` as of 2026-10-28 — has `implement`/`file-issue` or any other mode started appearing?) still hold
    - `gh search prs`, `gh api .../issues/.../comments`, and the PATCH endpoints/flags used above still exist and behave as described
    - The org list this skill's examples reference still reflects the fleet's actual orgs (re-derive live, don't trust a stale list)
 3. For each problem found, open a GitHub issue. This repo is public: write the body in passive voice, name no private repository, and end it with the disclosure line (re-derived from the live `ATTRIBUTION_REQUIREMENT`, as in Step 1) and the Claude sign-off. Write the body to a fresh per-issue file and pass it with `--body-file`, so the body never passes through shell quoting:
