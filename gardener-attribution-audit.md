@@ -66,7 +66,7 @@ gh search prs --owner <org> --match body "gardener-tend-dispatch" --limit 1000 \
   --json number,url,title,state,repository
 ```
 
-Run once per org the fleet actually spans — derive the org list live from the local db (`select distinct repo from runs where mode='tend'`, then take the part before `/`) rather than hardcoding a list; this ecosystem's known orgs (as of this skill's authoring) are `dmccoystephenson`, `Dans-Plugins`, `Preponderous-Software`, `Stephenson-Software`, but that set can grow.
+Run once per org the fleet actually spans — derive the org list live from the local db (`select distinct repo from runs where mode='tend'`, then take the part before `/`) rather than hardcoding a list. A list copied into this file goes stale and silently drops every repo in a missing org: the four orgs this skill once named had become seven in the db by 2026-11-04.
 
 **`gh search --match body` tokenizes — it is NOT exact-substring matching.** Confirmed on this skill's first real run: 15 of 112 candidates on one repo were false positives — ordinary, non-`tend` PRs that merely contained the words "gardener"/"tend"/"dispatch" as separate tokens somewhere in the body (e.g. a PR describing a change to gardener's own attribution feature). **Never treat a search hit as gardener's own PR on faith** — after fetching each candidate's body (`gh api repos/OWNER/REPO/pulls/NUM --jq .body`), grep it for the literal marker string before editing or counting it. This matters most on `gardener`'s own repo, where ordinary development PRs are far more likely to mention those words in prose.
 
@@ -132,7 +132,7 @@ Run this section when the skill may have drifted from reality — e.g. after gar
    - `/root/gardener/gardener/dev_loop.py` still defines `ATTRIBUTION_REQUIREMENT` and `ORPHAN_MARKER` with the marker string and disclosure wording this skill assumes — if either changed, this skill's canonical disclosure line and marker search are stale and must be updated to match, not the other way around
    - The local sqlite db's path, `runs` table schema (`repo`, `mode`, `gap_summary`, `timestamp`, `outcome`), and the `mode` values actually present (`tend` and `create-dev-loop` as of 2026-10-28 — has `implement`/`file-issue` or any other mode started appearing?) still hold
    - `gh search prs`, `gh api .../issues/.../comments`, and the PATCH endpoints/flags used above still exist and behave as described
-   - The org list this skill's examples reference still reflects the fleet's actual orgs (re-derive live, don't trust a stale list)
+   - The org list is still derived live in Step 2, and no org names have crept back into this file as a fixed list
 3. For each problem found, open a GitHub issue. This repo is public: write the body in passive voice, name no private repository, and end it with the disclosure line (re-derived from the live `ATTRIBUTION_REQUIREMENT`, as in Step 1) and the Claude sign-off. Write the body to a fresh per-issue file and pass it with `--body-file`, so the body never passes through shell quoting:
    ```bash
    ISSUE_BODY=$(mktemp)   # write the body below into this file, then:
