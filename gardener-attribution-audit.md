@@ -68,6 +68,16 @@ gh search prs --owner <org> --match body "gardener-tend-dispatch" --limit 1000 \
 
 Run once per org the fleet actually spans — derive the org list live from the local db (`select distinct repo from runs where mode='tend'`, then take the part before `/`) rather than hardcoding a list. A list copied into this file goes stale and silently drops every repo in a missing org: the four orgs this skill once named had become seven in the db by 2026-11-04.
 
+**Treat a result count of 1,000 as truncated, not as a total.** GitHub's search API serves at most 1,000 results for one query, so `--limit 1000` is a hard ceiling and an org past it comes back cut short with no error. Compare each org's result count against the ceiling. At 1,000, split that org's search into creation-date windows, narrowing any window that still reaches 1,000, and merge the windows by `url`, because adjacent date ranges can overlap:
+
+```bash
+gh search prs --owner <org> --match body "gardener-tend-dispatch" --limit 1000 \
+  --created "<YYYY-MM-DD>..<YYYY-MM-DD>" \
+  --json number,url,title,state,repository
+```
+
+Split by date rather than by repo: a per-repo split would take its repo list from the local db, and PR detection would stop being device-agnostic. An org that cannot be brought under the ceiling is reported as a partial count in the recon report, never as a complete one. No org has been observed at the ceiling yet; this rule comes from the documented limit, not from a real run.
+
 **`gh search --match body` tokenizes — it is NOT exact-substring matching.** Confirmed on this skill's first real run: 15 of 112 candidates on one repo were false positives — ordinary, non-`tend` PRs that merely contained the words "gardener"/"tend"/"dispatch" as separate tokens somewhere in the body (e.g. a PR describing a change to gardener's own attribution feature). **Never treat a search hit as gardener's own PR on faith** — after fetching each candidate's body (`gh api repos/OWNER/REPO/pulls/NUM --jq .body`), grep it for the literal marker string before editing or counting it. This matters most on `gardener`'s own repo, where ordinary development PRs are far more likely to mention those words in prose.
 
 **Finding gardener's issues (best-effort, no marker):**
@@ -77,8 +87,10 @@ Cross-reference each repo's `gap_summary` text (free-form, e.g. "1 issue closed 
 **Finding gardener's PR/issue comments (heuristic, highest rewrite risk):**
 
 ```bash
-gh api repos/OWNER/REPO/issues/NUM/comments --jq '.[] | {id, created_at, body}'
+gh api --paginate repos/OWNER/REPO/issues/NUM/comments --jq '.[] | {id, created_at, body}'
 ```
+
+`--paginate` is required: this endpoint returns 30 items per page by default, so without it a long thread's later comments never become candidates.
 
 Identify gardener's `gh pr comment` self-reviews by timestamp proximity to a known `tend` run and by structured/checklist-like review content. These are the likeliest place to find real first-person narration ("I re-verified...", "I confirmed...") — `build_tend_prompt`'s self-review instruction has historically produced exactly that voice, so budget real conversion effort here, not just an appended line.
 
@@ -131,7 +143,7 @@ Run this section when the skill may have drifted from reality — e.g. after gar
 2. For each command, path, or assumption, verify it is still correct:
    - `/root/gardener/gardener/dev_loop.py` still defines `ATTRIBUTION_REQUIREMENT` and `ORPHAN_MARKER` with the marker string and disclosure wording this skill assumes — if either changed, this skill's canonical disclosure line and marker search are stale and must be updated to match, not the other way around
    - The local sqlite db's path, `runs` table schema (`repo`, `mode`, `gap_summary`, `timestamp`, `outcome`), and the `mode` values actually present (`tend` and `create-dev-loop` as of 2026-10-28 — has `implement`/`file-issue` or any other mode started appearing?) still hold
-   - `gh search prs`, `gh api .../issues/.../comments`, and the PATCH endpoints/flags used above still exist and behave as described
+   - `gh search prs` (including `--created` ranges and the 1,000-result ceiling), `gh api --paginate .../issues/.../comments`, and the PATCH endpoints/flags used above still exist and behave as described
    - The org list is still derived live in Step 2, and no org names have crept back into this file as a fixed list
 3. For each problem found, open a GitHub issue. This repo is public: write the body in passive voice, name no private repository, and end it with the disclosure line (re-derived from the live `ATTRIBUTION_REQUIREMENT`, as in Step 1) and the Claude sign-off. Write the body to a fresh per-issue file and pass it with `--body-file`, so the body never passes through shell quoting:
    ```bash
