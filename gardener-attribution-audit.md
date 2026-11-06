@@ -50,10 +50,12 @@ Re-read `dev_loop.ATTRIBUTION_REQUIREMENT` and `dev_loop.ORPHAN_MARKER` from `/r
 
 ---
 
-_This <PR description|issue body|comment> was drafted during a Gardener session ([Stephenson-Software/gardener](https://github.com/Stephenson-Software/gardener))._
+This <PR description|issue body|comment> was drafted during a Gardener session (https://github.com/Stephenson-Software/gardener).
 ```
 
-Substitute "PR description" / "issue body" / "comment" for the noun. Append after a `---` separator, italicized. Never prepend, never replace existing content.
+Substitute "PR description" / "issue body" / "comment" for the noun. Append after a `---` separator, which is this skill's own choice rather than part of the worked example. Never prepend, never replace existing content.
+
+**The line exists in more than one shape.** Posted content may carry it italicized or plain, and with a bare URL or a Markdown link (`[Stephenson-Software/gardener](https://github.com/Stephenson-Software/gardener)`); by 2026-11-06 this repo's own issues and PR comments showed italicized with a link, plain with a link, and plain with a bare URL. Every such shape counts as "an equivalent one" under Step 3's idempotent check, so match on the wording "drafted during a Gardener session" plus gardener's URL, never on the exact string of the current shape, or a compliant item gets a second line.
 
 ### 2 — Recon (read-only — no edits yet)
 
@@ -159,7 +161,7 @@ Run this section when the skill may have drifted from reality — e.g. after gar
 
    ---
 
-   _This issue body was drafted during a Gardener session ([Stephenson-Software/gardener](https://github.com/Stephenson-Software/gardener))._
+   This issue body was drafted during a Gardener session (https://github.com/Stephenson-Software/gardener).
 
    _drafted by Claude on behalf of Daniel Stephenson_
    ```
