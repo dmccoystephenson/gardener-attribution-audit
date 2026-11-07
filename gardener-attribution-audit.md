@@ -12,7 +12,7 @@ gardener (the CLI at `/root/gardener`) dispatches Claude Code against a fleet of
 
 Unlike generic Claude-authored content (see the sibling skill `~/local-skills/claude-attribution-audit/claude-attribution-audit.md`, which this skill borrows its tiered/non-destructive discipline from), gardener's PRs carry a **reliable machine marker** — `<!-- gardener-tend-dispatch -->` (`dev_loop.ORPHAN_MARKER`) — embedded in every PR body it opens. That makes PR detection precise rather than heuristic. Issues and comments have no such marker and stay best-effort.
 
-**gardener may run from more than one device** (e.g. a second machine tending the same fleet). A device's local sqlite state db (`~/.local/state/gardener/gardener.sqlite3`, table `runs`) only records runs *that device* dispatched — it is not shared or synced across devices. PR detection below is device-agnostic (it searches GitHub itself, not the local db) and stays complete regardless of which device tended a given repo. Issue detection is NOT device-agnostic — it leans on the local db's `gap_summary` text, so it will silently miss issues filed by a `tend` run dispatched from a different device. Treat this as a **known, disclosed coverage gap** in every report this skill produces — never imply issue coverage is complete when it can only be as complete as the current device's own history.
+**gardener may run from more than one device** (e.g. a second machine tending the same fleet). A device's local sqlite state db (`~/.local/state/gardener/gardener.sqlite3`, table `runs`) only records runs *that device* dispatched. Its rows flow one way: where a device has gardener's optional hub configured, each row is pushed to the hub and stamped in the `pushed_at` column, and other devices' rows do not come back. On 2026-11-07 a db with every row pushed still held a single `device` value, while the hub had held two devices' rows since 2026-09-27. So a non-null `pushed_at` says nothing about what the local db covers. PR detection below is device-agnostic (it searches GitHub itself, not the local db) and stays complete regardless of which device tended a given repo. Issue detection is NOT device-agnostic — it leans on the local db's `gap_summary` text, so it will silently miss issues filed by a `tend` run dispatched from a different device, unless the hub's combined history closes that gap (see Step 2). Treat this as a **known, disclosed coverage gap** in every report this skill produces — never imply issue coverage is complete when it can only be as complete as the run history actually queried.
 
 ## Scope
 
@@ -86,6 +86,8 @@ Split by date rather than by repo: a per-repo split would take its repo list fro
 
 Cross-reference each repo's `gap_summary` text (free-form, e.g. "1 issue closed (#46)", "2 issues filed (#62 on project repo, #4 on skill repo)") against that repo's real issue list. Verify each candidate individually (timestamp proximity to the run, does the body read like an automated gap-report vs. something a human filed) before treating it as gardener's own. **When in doubt, exclude it** — a missed issue is fine, a human's genuine issue misattributed and rewritten is not.
 
+**A hub may narrow the device gap, but this is unproven.** gardener's merged PRs describe the hub as storing every pushed row with the same `runs` columns, `gardener hub devices --json` as listing the devices that have pushed, and `gardener status --all-devices` as reading the combined history. Neither command has been run from this skill. Before relying on them, confirm that the output carries `gap_summary`, and that the hub's cap on `--limit` lets a device's whole history be read. Step 2's org list comes from the local db too, so an org only another device tends is missed the same way. If there is no hub, or either point fails, keep the local-db method and name the devices left uncovered in the report.
+
 **Finding gardener's PR/issue comments (heuristic, highest rewrite risk):**
 
 ```bash
@@ -133,7 +135,7 @@ jq -n --rawfile body "$BODY" '{body:$body}' | gh api -X PATCH "repos/OWNER/REPO/
 
 ### 4 — Report
 
-Roll up every worker's table into one summary: total items edited (by type), total skipped, every low-confidence/borderline item surfaced for the user's own judgment (never silently resolved either way), and an explicit restatement of the issue-detection coverage gap (only as complete as the devices whose local state db was actually queried).
+Roll up every worker's table into one summary: total items edited (by type), total skipped, every low-confidence/borderline item surfaced for the user's own judgment (never silently resolved either way), and an explicit restatement of the issue-detection coverage gap (only as complete as the devices whose run history was actually queried, in a local state db or on a hub).
 
 ---
 
@@ -145,6 +147,7 @@ Run this section when the skill may have drifted from reality — e.g. after gar
 2. For each command, path, or assumption, verify it is still correct:
    - `/root/gardener/gardener/dev_loop.py` still defines `ATTRIBUTION_REQUIREMENT` and `ORPHAN_MARKER` with the marker string and disclosure wording this skill assumes — if either changed, this skill's canonical disclosure line and marker search are stale and must be updated to match, not the other way around
    - The local sqlite db's path, `runs` table schema (`repo`, `mode`, `gap_summary`, `timestamp`, `outcome`), and the `mode` values actually present (`tend` and `create-dev-loop` as of 2026-10-28 — has `implement`/`file-issue` or any other mode started appearing?) still hold
+   - `pushed_at` still marks rows pushed to gardener's optional hub, other devices' rows still do not reach the local db, and `gardener hub devices --json` and `gardener status --all-devices` still exist and behave as Step 2 describes
    - `gh search prs` (including `--created` ranges and the 1,000-result ceiling), `gh api --paginate .../issues/.../comments`, and the PATCH endpoints/flags used above still exist and behave as described
    - The org list is still derived live in Step 2, and no org names have crept back into this file as a fixed list
 3. For each problem found, open a GitHub issue. This repo is public: write the body in passive voice, name no private repository, and end it with the disclosure line (re-derived from the live `ATTRIBUTION_REQUIREMENT`, as in Step 1) and the Claude sign-off. Write the body to a fresh per-issue file and pass it with `--body-file`, so the body never passes through shell quoting:
